@@ -2,6 +2,7 @@ from typing import Union
 import numpy as np
 import time
 import torch
+import sys
 
 from unitree_sdk2py.core.channel import ChannelPublisher, ChannelFactoryInitialize
 from unitree_sdk2py.core.channel import ChannelSubscriber, ChannelFactoryInitialize
@@ -107,6 +108,12 @@ class Controller:
         cmd.crc = CRC().Crc(cmd)
         self.lowcmd_publisher_.Write(cmd)
 
+    def stop(self):
+        print("Select Button detected, Exit!")
+        create_damping_cmd(self.low_cmd)
+        self.send_cmd(self.low_cmd)
+        sys.exit(0)
+
     def wait_for_low_state(self):
         while self.low_state.tick == 0:
             time.sleep(self.config.control_dt)
@@ -116,6 +123,8 @@ class Controller:
         print("Enter zero torque state.")
         print("Waiting for the start signal to move to default pos...")
         while self.remote_controller.button[KeyMap.start] != 1:
+            if self.remote_controller.button[KeyMap.select] == 1:
+                self.stop()
             create_zero_cmd(self.low_cmd)
             self.send_cmd(self.low_cmd)
             time.sleep(self.config.control_dt)
@@ -139,6 +148,8 @@ class Controller:
 
         # move to default pos
         for i in range(num_step):
+            if self.remote_controller.button[KeyMap.select] == 1:
+                self.stop()
             alpha = i / num_step
             for j in range(dof_size):
                 motor_idx = dof_idx[j]
@@ -156,6 +167,8 @@ class Controller:
         print("Enter default pos state.")
         print("Waiting for the Button A signal to Start Control...")
         while self.remote_controller.button[KeyMap.A] != 1:
+            if self.remote_controller.button[KeyMap.select] == 1:
+                self.stop()
             for i in range(len(self.config.joint2motor_idx)):
                 motor_idx = self.config.joint2motor_idx[i]
                 self.low_cmd.motor_cmd[motor_idx].q = self.config.default_angles[i]
@@ -268,15 +281,12 @@ if __name__ == "__main__":
     try:
         while True:
             if controller.remote_controller.button[KeyMap.select] == 1:
-                print("Stopping controller thread...")
+                print("Select Button detected, Exit!")
                 controller.run_thread.Wait()
-                print("Controller thread stopped.")
                 break
             time.sleep(0.01)
     except KeyboardInterrupt:
-        print("\nReceived keyboard interrupt, stopping controller thread...")
         controller.run_thread.Wait()
-        print("Controller thread stopped.")
 
     # Enter the damping state
     create_damping_cmd(controller.low_cmd)
