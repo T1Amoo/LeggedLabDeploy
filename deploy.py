@@ -37,22 +37,31 @@ class Controller:
         self.dqj = np.zeros(config.num_actions, dtype=np.float32)
         self.action = np.zeros(config.num_actions, dtype=np.float32)
         self.target_dof_pos = config.default_angles.copy()
-        self.obs = np.zeros(config.num_obs, dtype=np.float32)
-        self.obs_history = np.zeros(
-            (config.history_length, config.num_obs), dtype=np.float32)
+
+        if config.use_height_map:
+            self.height_map_flat = np.ones(config.height_map_size, dtype=np.float32) * config.flat_height
+            self.height_map_gt = np.ones(config.height_map_size, dtype=np.float32) * config.flat_height
+            self.obs = np.zeros(config.num_obs + config.height_map_size, dtype=np.float32)
+            self.obs_history = np.zeros(
+                (config.history_length, config.num_obs + config.height_map_size), dtype=np.float32)
+            self.use_gt_map = False
+        else:
+            self.obs = np.zeros(config.num_obs, dtype=np.float32)
+            self.obs_history = np.zeros(
+                (config.history_length, config.num_obs), dtype=np.float32)
 
         self.clip_min = np.array([self.config.cmd_range["lin_vel_x"][0], self.config.cmd_range["lin_vel_y"]
                                  [0], self.config.cmd_range["ang_vel_z"][0]], dtype=np.float32)
         self.clip_max = np.array([self.config.cmd_range["lin_vel_x"][1], self.config.cmd_range["lin_vel_y"]
                                  [1], self.config.cmd_range["ang_vel_z"][1]], dtype=np.float32)
 
-        with torch.inference_mode():
-            obs_tensor = self.obs_history.reshape(1, -1)
-            obs_tensor = obs_tensor.astype(np.float32)
-            self.policy(torch.from_numpy(obs_tensor))
+        for _ in range(50):
+            with torch.inference_mode():
+                obs_tensor = self.obs_history.reshape(1, -1)
+                obs_tensor = obs_tensor.astype(np.float32)
+                self.policy(torch.from_numpy(obs_tensor))
 
         self.cmd = np.array([0.0, 0, 0])
-        self.counter = 0
 
         if config.msg_type == "hg":
             # g1 and h1_2 use the hg msg type
@@ -179,7 +188,11 @@ class Controller:
             time.sleep(self.config.control_dt)
 
     def run(self):
-        self.counter += 1
+        if self.remote_controller.button[KeyMap.B] == 1:
+            if not self.use_gt_map:
+                self.use_gt_map = True
+                print("Use GT Map!")
+
         # Get the current joint position and velocity
         for i in range(len(self.config.joint2motor_idx)):
             self.qj[i] = self.low_state.motor_state[self.config.joint2motor_idx[i]].q
@@ -217,6 +230,12 @@ class Controller:
         self.obs[9: 9 + num_actions] = qj_obs
         self.obs[9 + num_actions: 9 + num_actions * 2] = dqj_obs
         self.obs[9 + num_actions * 2: 9 + num_actions * 3] = self.action
+
+        if self.config.use_height_map:
+            if self.use_gt_map:
+                self.obs[9 + num_actions * 3: 9 + num_actions * 3 + self.config.height_map_size] = self.height_map_gt
+            else:
+                self.obs[9 + num_actions * 3: 9 + num_actions * 3 + self.config.height_map_size] = self.height_map_flat
 
         self.obs_history = np.concatenate(
             (self.obs_history[1:], self.obs.reshape(1, -1)), axis=0)

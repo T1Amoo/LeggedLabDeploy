@@ -46,3 +46,10 @@ class Config:
                 self.motion_file = config["motion_file"]
             else:
                 self.motion_file = None
+
+            if "use_height_map" in config:
+                self.use_height_map = config["use_height_map"]
+                self.height_map_size = config["height_map_size"]
+                self.flat_height = config["flat_height"]
+            else:
+                self.motion_file = False
