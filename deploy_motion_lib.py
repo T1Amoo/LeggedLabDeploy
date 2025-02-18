@@ -41,11 +41,6 @@ class Controller:
         self.motion_lengths = self.motion_lib.get_motion_length(self.motion_ids)
         self.motion_state = self.motion_lib.get_motion_state(self.motion_ids, self.motion_times)
 
-        # prewarm
-        cyc = 100
-        for _ in range(cyc):
-            self.motion_state = self.motion_lib.get_motion_state(self.motion_ids, self.motion_times)
-
         self.run_thread = RecurrentThread(
             interval=self.config.control_dt, target=self.run)  # 100Hz/50Hz
 
@@ -58,15 +53,19 @@ class Controller:
         self.obs_history = np.zeros(
             (config.history_length, config.num_obs), dtype=np.float32)
 
+        # prewarm
+        cyc = 100
+        for _ in range(cyc):
+            self.motion_state = self.motion_lib.get_motion_state(self.motion_ids, self.motion_times)
+            with torch.inference_mode():
+                obs_tensor = self.obs_history.reshape(1, -1)
+                obs_tensor = obs_tensor.astype(np.float32)
+                self.policy(torch.from_numpy(obs_tensor))
+
         self.clip_min = np.array([self.config.cmd_range["lin_vel_x"][0], self.config.cmd_range["lin_vel_y"]
                                  [0], self.config.cmd_range["ang_vel_z"][0]], dtype=np.float32)
         self.clip_max = np.array([self.config.cmd_range["lin_vel_x"][1], self.config.cmd_range["lin_vel_y"]
                                  [1], self.config.cmd_range["ang_vel_z"][1]], dtype=np.float32)
-
-        with torch.inference_mode():
-            obs_tensor = self.obs_history.reshape(1, -1)
-            obs_tensor = obs_tensor.astype(np.float32)
-            self.policy(torch.from_numpy(obs_tensor))
 
         self.cmd = np.array([0.0, 0, 0])
 

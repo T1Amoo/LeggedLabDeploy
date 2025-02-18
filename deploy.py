@@ -188,10 +188,11 @@ class Controller:
             time.sleep(self.config.control_dt)
 
     def run(self):
-        if self.remote_controller.button[KeyMap.B] == 1:
-            if not self.use_gt_map:
-                self.use_gt_map = True
-                print("Use GT Map!")
+        if self.config.use_height_map:
+            if self.remote_controller.button[KeyMap.B] == 1:
+                if not self.use_gt_map:
+                    self.use_gt_map = True
+                    print("Use GT Map!")
 
         # Get the current joint position and velocity
         for i in range(len(self.config.joint2motor_idx)):
