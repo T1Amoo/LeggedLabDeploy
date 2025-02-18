@@ -3,7 +3,7 @@ import numpy as np
 import time
 import torch
 import sys
-
+from MotionLib.motion_lib_g1 import G1_MotionLib
 from unitree_sdk2py.core.channel import ChannelPublisher, ChannelSubscriber, ChannelFactoryInitialize
 from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_, unitree_hg_msg_dds__LowState_
 from unitree_sdk2py.idl.default import unitree_go_msg_dds__LowCmd_, unitree_go_msg_dds__LowState_
@@ -29,6 +29,23 @@ class Controller:
 
         self.policy = torch.jit.load(config.policy_path).eval()
 
+        assert config.motion_file is not None
+        self.motion_lib: G1_MotionLib = G1_MotionLib(motion_file=self.config.motion_file,
+                                                     dof_body_ids=None,
+                                                     dof_offsets=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+                                                     key_body_ids=torch.arange(30),
+                                                     device='cpu')
+        self.motion_dt = self.config.control_dt
+        self.motion_ids = self.motion_lib.sample_motions(1)
+        self.motion_times = torch.zeros(1)
+        self.motion_lengths = self.motion_lib.get_motion_length(self.motion_ids)
+        self.motion_state = self.motion_lib.get_motion_state(self.motion_ids, self.motion_times)
+
+        # prewarm
+        cyc = 100
+        for _ in range(cyc):
+            self.motion_state = self.motion_lib.get_motion_state(self.motion_ids, self.motion_times)
+
         self.run_thread = RecurrentThread(
             interval=self.config.control_dt, target=self.run)  # 100Hz/50Hz
 
@@ -52,7 +69,6 @@ class Controller:
             self.policy(torch.from_numpy(obs_tensor))
 
         self.cmd = np.array([0.0, 0, 0])
-        self.counter = 0
 
         if config.msg_type == "hg":
             # g1 and h1_2 use the hg msg type
@@ -179,7 +195,12 @@ class Controller:
             time.sleep(self.config.control_dt)
 
     def run(self):
-        self.counter += 1
+
+        # Step motion refference
+        self.motion_times += self.motion_dt
+        self.motion_times[self.motion_times >= self.motion_lengths] = 0.
+        self.motion_state = self.motion_lib.get_motion_state(self.motion_ids, self.motion_times)
+
         # Get the current joint position and velocity
         for i in range(len(self.config.joint2motor_idx)):
             self.qj[i] = self.low_state.motor_state[self.config.joint2motor_idx[i]].q
@@ -250,7 +271,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("net", type=str, help="network interface")
     parser.add_argument(
-        "config", type=str, help="config file name in the configs folder", default="g1.yaml")
+        "config", type=str, help="config file name in the configs folder", default="g1_motion_lib.yaml")
     args = parser.parse_args()
 
     # Load config
