@@ -5,11 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Deploy to g1",
+            "name": "Deploy to G1",
             "type": "debugpy",
             "request": "launch",
             "program": "deploy.py",
             "args": ["eno1", "g1.yaml"],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Deploy to G1 MotionLib",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "deploy_motion_lib.py",
+            "args": ["eno1", "g1_motion_lib.yaml"],
             "console": "integratedTerminal",
             "justMyCode": false
         }

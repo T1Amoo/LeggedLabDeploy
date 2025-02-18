@@ -41,3 +41,8 @@ class Config:
 
             self.history_length = config["history_length"]
             self.cmd_range = config["cmd_range"]
+
+            if "motion_file" in config:
+                self.motion_file = config["motion_file"]
+            else:
+                self.motion_file = None
