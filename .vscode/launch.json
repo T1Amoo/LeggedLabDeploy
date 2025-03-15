@@ -5,6 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Deploy to H1",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "deploy.py",
+            "args": ["eno1", "h1.yaml"],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
             "name": "Deploy to G1",
             "type": "debugpy",
             "request": "launch",

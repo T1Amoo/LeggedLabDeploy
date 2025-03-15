@@ -95,6 +95,8 @@ class Controller:
         elif config.msg_type == "go":
             init_cmd_go(self.low_cmd, weak_motor=self.config.weak_motor)
 
+        self.first_run = True
+
     def LowStateHgHandler(self, msg: LowStateHG):
         self.low_state = msg
         self.mode_machine_ = self.low_state.mode_machine
@@ -181,7 +183,7 @@ class Controller:
             time.sleep(self.config.control_dt)
 
     def run(self):
-
+        # s_time = time.time()
         # Get the current joint position and velocity
         for i in range(len(self.config.joint2motor_idx)):
             self.qj[i] = self.low_state.motor_state[self.config.joint2motor_idx[i]].q
@@ -220,14 +222,21 @@ class Controller:
         self.obs[9 + num_actions: 9 + num_actions * 2] = dqj_obs
         self.obs[9 + num_actions * 2: 9 + num_actions * 3] = self.action
 
-        self.obs_history = np.concatenate(
-            (self.obs_history[1:], self.obs.reshape(1, -1)), axis=0)
+        if self.first_run:
+            self.obs_history[:] = self.obs.reshape(1, -1)
+            self.first_run = False
+        else:
+            self.obs_history = np.concatenate(
+                (self.obs_history[1:], self.obs.reshape(1, -1)), axis=0)
 
         # Get the action from the policy network
         obs_tensor = self.obs_history.reshape(1, -1)
         obs_tensor = obs_tensor.astype(np.float32)
+        # print("1", time.time() - s_time)
+
         self.action = self.policy(torch.from_numpy(
-            obs_tensor)).detach().numpy().squeeze()
+            obs_tensor).clip(-100, 100)).clip(-100, 100).detach().numpy().squeeze()
+        # print("2", time.time() - s_time)
 
         # transform action to target_dof_pos
         target_dof_pos = self.config.default_angles + \
