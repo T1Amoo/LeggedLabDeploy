@@ -1,20 +1,25 @@
-# Deploy on Physical Robot
+# Deploy Code for LeggedLab
 
-This code can deploy the trained network on physical robots. Currently supported robots include Unitree G1, H1, H1_2.
+This code can deploy the trained network on physical robots. Currently supported robots include Unitree G1, H1.
 
-| G1 | H1 | H1_2 |
-|--- | --- | --- |
-| ![G1](https://oss-global-cdn.unitree.com/static/d33febc2e63d463091b6defb46c15123.GIF) | ![H1](https://oss-global-cdn.unitree.com/static/a84afcef56914e8aa3f0fc4e5c840772.GIF) | ![H1_2](https://oss-global-cdn.unitree.com/static/df0bdb852e294bd6beedf3d0adbb736f.GIF) |
+## Installation
 
+It is recommended to use the Python interpreter installed with Legged Lab to run the deployed code. The additional requirement is unitree_sdk2_python
+
+```bash
+conda activate leggedlab
+
+pip install -e unitree_sdk2_python
+```
 
 ## Startup Usage
 
 ```bash
-python deploy_real.py {net_interface} {config_name}
+python deploy.py {net_interface} {config_name}
 ```
 
 - `net_interface`: is the name of the network interface connected to the robot, such as `enp3s0`
-- `config_name`: is the file name of the configuration file. The configuration file will be found under `deploy/deploy_real/configs/`, such as `g1.yaml`, `h1.yaml`, `h1_2.yaml`.
+- `config_name`: is the file name of the configuration file. The configuration file will be found under `configs/`, such as `g1.yaml`, `h1.yaml`.
 
 ## Startup Process
 
@@ -68,12 +73,18 @@ The left and right of the right joystick controls the movement speed of the robo
 
 In motion control mode, press the `select` button on the remote control, the robot will enter the damping mode and fall down, and the program will exit. Or use `ctrl+c` in the terminal to close the program.
 
-> Note:
->
-> Since this example deployment is not a stable control program and is only used for demonstration purposes, please try not to disturb the robot during the control process. If any unexpected situation occurs during the control process, please exit the control in time to avoid danger.
 
-## Video tutorial
+## Citation
 
-| G1 | H1 | H1_2 |
-|--- | --- | --- |
-| [<img src="https://oss-global-cdn.unitree.com/static/c5667475f51844628911cf032509d80a_1920x1080.png" width="400px">](https://oss-global-cdn.unitree.com/static/621806fb837c4f869e5c59efd1d93105.mp4) | [<img src="https://oss-global-cdn.unitree.com/static/42d2332dc3004097896f33d0db027039_1920x1080.png" width="400px">](https://oss-global-cdn.unitree.com/static/9c61509fc4f74d21bb707a5fe3ae11aa.mp4) | [<img src="https://oss-global-cdn.unitree.com/static/c49a03fa297a4d178ec3a5b01b9c0bbf_1920x1080.png" width="400px">](https://oss-global-cdn.unitree.com/static/e60a0fcd829e417f92a88e78463a695d.mp4) |
+If you use Legged Lab in your research, you can cite it as follows:
+
+```bibtex
+@software{LeggedLab,
+  author = {Wandong, Sun},
+  license = {MIT},
+  title = {Legged Lab: Direct IsaacLab Workflow for Legged Robots},
+  url = {https://github.com/Hellod035/LeggedLab},
+  version = {0.0.1},
+  year = {2025}
+}
+```
