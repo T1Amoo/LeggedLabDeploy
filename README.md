@@ -9,7 +9,7 @@ It is recommended to use the Python interpreter installed with Legged Lab to run
 - Install unitree_sdk2_python for Communication
 
 ```bash
-conda activate openteleop_deploy
+conda activate leggedlab
 git clone https://github.com/unitreerobotics/unitree_sdk2_python.git
 cd unitree_sdk2_python
 pip install -e .
