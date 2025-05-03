@@ -6,10 +6,13 @@ This code can deploy the trained network on physical robots. Currently supported
 
 It is recommended to use the Python interpreter installed with Legged Lab to run the deployed code. The additional requirement is unitree_sdk2_python
 
-```bash
-conda activate leggedlab
+- Install unitree_sdk2_python for Communication
 
-pip install -e unitree_sdk2_python
+```bash
+conda activate openteleop_deploy
+git clone https://github.com/unitreerobotics/unitree_sdk2_python.git
+cd unitree_sdk2_python
+pip install -e .
 ```
 
 ## Startup Usage
@@ -44,10 +47,10 @@ Then use the `ifconfig` command to view the name of the network interface connec
 
 ### 4. Start the program
 
-Assume that the network card currently connected to the physical robot is named `enp3s0`. Take the G1 robot as an example, execute the following command to start
+Assume that the network card currently connected to the physical robot is named `eno1`. Take the G1 robot as an example, execute the following command to start
 
 ```bash
-python deploy_real.py enp3s0 g1.yaml
+python deploy.py --net eno1 g1.yaml --config_path configs/g1.yaml
 ```
 
 #### 4.1 Zero torque state
@@ -71,7 +74,7 @@ The left and right of the right joystick controls the movement speed of the robo
 
 #### 4.4 Exit control
 
-In motion control mode, press the `select` button on the remote control, the robot will enter the damping mode and fall down, and the program will exit. Or use `ctrl+c` in the terminal to close the program.
+Press the `select` at any time, the robot will enter the damping mode and fall down, and the program will exit. Or use `ctrl+c` in the terminal to close the program.
 
 
 ## Citation
