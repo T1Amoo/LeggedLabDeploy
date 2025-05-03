@@ -24,8 +24,7 @@ class Config:
             self.joint2motor_idx = config["joint2motor_idx"]
             self.kps = config["kps"]
             self.kds = config["kds"]
-            self.default_angles = np.array(
-                config["default_angles"], dtype=np.float32)
+            self.default_joint_pos = np.array(config["default_joint_pos"], dtype=np.float32)
 
             if "torso_idx" in config:
                 self.torso_idx = config["torso_idx"]
@@ -34,10 +33,10 @@ class Config:
             self.dof_pos_scale = config["dof_pos_scale"]
             self.dof_vel_scale = config["dof_vel_scale"]
             self.action_scale = config["action_scale"]
-            self.cmd_scale = np.array(config["cmd_scale"], dtype=np.float32)
+            self.command_scale = np.array(config["command_scale"], dtype=np.float32)
 
             self.num_actions = config["num_actions"]
             self.num_obs = config["num_obs"]
 
             self.history_length = config["history_length"]
-            self.cmd_range = config["cmd_range"]
+            self.command_range = config["command_range"]
