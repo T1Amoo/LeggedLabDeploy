@@ -28,11 +28,11 @@ python deploy.py {net_interface} {config_name}
 
 ### 1. Start the robot
 
-Start the robot in the hoisting state and wait for the robot to enter `zero torque mode`
+Start the robot.
 
 ### 2. Enter the debugging mode
 
-Make sure the robot is in `zero torque mode`, press the `L2+R2` key combination of the remote control; the robot will enter the `debugging mode`, and the robot joints are in the damping state in the `debugging mode`.
+Press the `L2+R2` key combination of the remote control; the robot will enter the `debugging mode`, and the robot joints are in the damping state in the `debugging mode`.
 
 
 ### 3. Connect the robot
