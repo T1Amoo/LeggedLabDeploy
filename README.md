@@ -84,10 +84,10 @@ If you use Legged Lab in your research, you can cite it as follows:
 ```bibtex
 @software{LeggedLab,
   author = {Wandong, Sun},
-  license = {MIT},
+  license = {BSD-3-Clause},
   title = {Legged Lab: Direct IsaacLab Workflow for Legged Robots},
   url = {https://github.com/Hellod035/LeggedLab},
-  version = {0.0.1},
+  version = {1.0.0},
   year = {2025}
 }
 ```

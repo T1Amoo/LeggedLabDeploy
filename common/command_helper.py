@@ -1,6 +1,17 @@
+# Copyright (c) 2022-2025, The unitree_rl_gym Project Developers.
+# All rights reserved.
+# Original code is licensed under BSD-3-Clause.
+#
+# Copyright (c) 2025-2026, The Legged Lab Project Developers.
+# All rights reserved.
+# Modifications are licensed under BSD-3-Clause.
+#
+# This file contains code derived from unitree_rl_gym Project (BSD-3-Clause license)
+# with modifications by Legged Lab Project (BSD-3-Clause license).
+
+
 from unitree_sdk2py.idl.unitree_go.msg.dds_ import LowCmd_ as LowCmdGo
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_ as LowCmdHG
-from typing import Union
 
 
 class MotorMode:
@@ -8,7 +19,7 @@ class MotorMode:
     AB = 1  # Parallel Control for A/B Joints
 
 
-def create_damping_cmd(cmd: Union[LowCmdGo, LowCmdHG]):
+def create_damping_cmd(cmd: LowCmdGo | LowCmdHG):
     size = len(cmd.motor_cmd)
     for i in range(size):
         cmd.motor_cmd[i].q = 0
@@ -19,7 +30,7 @@ def create_damping_cmd(cmd: Union[LowCmdGo, LowCmdHG]):
     return cmd
 
 
-def create_zero_cmd(cmd: Union[LowCmdGo, LowCmdHG]):
+def create_zero_cmd(cmd: LowCmdGo | LowCmdHG):
     size = len(cmd.motor_cmd)
     for i in range(size):
         cmd.motor_cmd[i].q = 0

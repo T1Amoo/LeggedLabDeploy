@@ -1,21 +1,46 @@
-import numpy as np
-import time
-import torch
+# Copyright (c) 2022-2025, The unitree_rl_gym Project Developers.
+# All rights reserved.
+# Original code is licensed under BSD-3-Clause.
+#
+# Copyright (c) 2025-2026, The Legged Lab Project Developers.
+# All rights reserved.
+# Modifications are licensed under BSD-3-Clause.
+#
+# This file contains code derived from unitree_rl_gym Project (BSD-3-Clause license)
+# with modifications by Legged Lab Project (BSD-3-Clause license).
+
 import sys
+import time
 from threading import Lock
-from unitree_sdk2py.core.channel import ChannelPublisher, ChannelSubscriber, ChannelFactoryInitialize
-from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_, unitree_hg_msg_dds__LowState_
-from unitree_sdk2py.idl.default import unitree_go_msg_dds__LowCmd_, unitree_go_msg_dds__LowState_
-from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_ as LowCmdHG
+
+import numpy as np
+import torch
+from unitree_sdk2py.core.channel import (
+    ChannelFactoryInitialize,
+    ChannelPublisher,
+    ChannelSubscriber,
+)
+from unitree_sdk2py.idl.default import (
+    unitree_go_msg_dds__LowCmd_,
+    unitree_go_msg_dds__LowState_,
+    unitree_hg_msg_dds__LowCmd_,
+    unitree_hg_msg_dds__LowState_,
+)
 from unitree_sdk2py.idl.unitree_go.msg.dds_ import LowCmd_ as LowCmdGo
-from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
 from unitree_sdk2py.idl.unitree_go.msg.dds_ import LowState_ as LowStateGo
+from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_ as LowCmdHG
+from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
 from unitree_sdk2py.utils.crc import CRC
 from unitree_sdk2py.utils.thread import RecurrentThread
 
-from common.command_helper import create_damping_cmd, init_cmd_hg, init_cmd_go, MotorMode
+from common.command_helper import (
+    MotorMode,
+    create_damping_cmd,
+    init_cmd_go,
+    init_cmd_hg,
+)
+from common.remote_controller import KeyMap, RemoteController
 from common.rotation_helper import get_gravity_orientation, transform_imu_data
-from common.remote_controller import RemoteController, KeyMap
 from config import Config
 
 
@@ -40,8 +65,22 @@ class Controller:
         self.current_obs = np.zeros(config.num_obs, dtype=np.float32)
         self.current_obs_history = np.zeros((config.history_length, config.num_obs), dtype=np.float32)
 
-        self.clip_min_command = np.array([self.config.command_range["lin_vel_x"][0], self.config.command_range["lin_vel_y"][0], self.config.command_range["ang_vel_z"][0]], dtype=np.float32)
-        self.clip_max_command = np.array([self.config.command_range["lin_vel_x"][1], self.config.command_range["lin_vel_y"][1], self.config.command_range["ang_vel_z"][1]], dtype=np.float32)
+        self.clip_min_command = np.array(
+            [
+                self.config.command_range["lin_vel_x"][0],
+                self.config.command_range["lin_vel_y"][0],
+                self.config.command_range["ang_vel_z"][0],
+            ],
+            dtype=np.float32,
+        )
+        self.clip_max_command = np.array(
+            [
+                self.config.command_range["lin_vel_x"][1],
+                self.config.command_range["lin_vel_y"][1],
+                self.config.command_range["ang_vel_z"][1],
+            ],
+            dtype=np.float32,
+        )
 
         for _ in range(50):
             with torch.inference_mode():
@@ -165,14 +204,18 @@ class Controller:
         if self.config.imu_type == "torso":
             waist_yaw = self.low_state.motor_state[self.config.torso_idx].q
             waist_yaw_omega = self.low_state.motor_state[self.config.torso_idx].dq
-            quat, ang_vel = transform_imu_data(waist_yaw=waist_yaw, waist_yaw_omega=waist_yaw_omega, imu_quat=quat, imu_omega=ang_vel)
+            quat, ang_vel = transform_imu_data(
+                waist_yaw=waist_yaw, waist_yaw_omega=waist_yaw_omega, imu_quat=quat, imu_omega=ang_vel
+            )
 
         gravity_orientation = get_gravity_orientation(quat)
         joint_pos = (self.joint_pos - self.config.default_joint_pos) * self.config.dof_pos_scale
         joint_vel = self.joint_vel * self.config.dof_vel_scale
         ang_vel = ang_vel * self.config.ang_vel_scale
 
-        command = np.array([self.remote_controller.ly, -self.remote_controller.lx, -self.remote_controller.rx], dtype=np.float32)
+        command = np.array(
+            [self.remote_controller.ly, -self.remote_controller.lx, -self.remote_controller.rx], dtype=np.float32
+        )
         command *= self.config.command_scale
         command = np.clip(command, self.clip_min_command, self.clip_max_command)
 
@@ -180,15 +223,17 @@ class Controller:
         self.current_obs[:3] = ang_vel
         self.current_obs[3:6] = gravity_orientation
         self.current_obs[6:9] = command
-        self.current_obs[9: 9 + num_actions] = joint_pos
-        self.current_obs[9 + num_actions: 9 + num_actions * 2] = joint_vel
-        self.current_obs[9 + num_actions * 2: 9 + num_actions * 3] = self.action
+        self.current_obs[9 : 9 + num_actions] = joint_pos
+        self.current_obs[9 + num_actions : 9 + num_actions * 2] = joint_vel
+        self.current_obs[9 + num_actions * 2 : 9 + num_actions * 3] = self.action
 
         if self.first_run:
             self.current_obs_history[:] = self.current_obs.reshape(1, -1)
             self.first_run = False
         else:
-            self.current_obs_history = np.concatenate((self.current_obs_history[1:], self.current_obs.reshape(1, -1)), axis=0)
+            self.current_obs_history = np.concatenate(
+                (self.current_obs_history[1:], self.current_obs.reshape(1, -1)), axis=0
+            )
 
         obs = self.current_obs_history.reshape(1, -1).astype(np.float32)
         self.action = self.policy(torch.from_numpy(obs).clip(-100, 100)).clip(-100, 100).detach().numpy().squeeze()
