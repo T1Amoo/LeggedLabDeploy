@@ -50,7 +50,7 @@ Then use the `ifconfig` command to view the name of the network interface connec
 Assume that the network card currently connected to the physical robot is named `eno1`. Take the G1 robot as an example, execute the following command to start
 
 ```bash
-python deploy.py --net eno1 g1.yaml --config_path configs/g1.yaml
+python deploy.py --net eno1 --config_path configs/g1.yaml
 ```
 
 #### 4.1 Zero torque state
