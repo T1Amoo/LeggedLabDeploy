@@ -9,6 +9,8 @@
 # This file contains code derived from unitree_rl_gym Project (BSD-3-Clause license)
 # with modifications by Legged Lab Project (BSD-3-Clause license).
 
+
+# taskset -c 7 python deploy.py --net=enp3s0 --config_path=configs/g1.yaml 
 import sys
 import time
 from threading import Lock
