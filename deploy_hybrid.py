@@ -202,9 +202,9 @@ class HybridController:
         
         # Automatically identify upper and lower body joint indices based on robot type
         if config.msg_type == "hg":  # G1 robot
-            # G1: joints 22-28 are upper body (arms), 0-21 are lower body (legs + waist)
-            self.upper_body_indices = list(range(22, config.num_actions))
-            self.lower_body_indices = list(range(0, 22))
+            # G1: joints 15-28 are upper body (both arms), 0-14 are lower body (legs + waist)
+            self.upper_body_indices = list(range(15, config.num_actions))
+            self.lower_body_indices = list(range(0, 15))
         elif config.msg_type == "go":  # H1 robot
             # H1: joints 18-19 are upper body (arms), 0-17 are lower body (legs)
             self.upper_body_indices = list(range(18, config.num_actions))
@@ -214,6 +214,14 @@ class HybridController:
         
         print(f"Upper body joints: {self.upper_body_indices}")
         print(f"Lower body joints: {self.lower_body_indices}")
+
+        # Validate CSV columns match the number of upper body joints
+        csv_num_cols = int(self.trajectory_player.trajectory_data.shape[1])
+        expected_cols = len(self.upper_body_indices)
+        if csv_num_cols != expected_cols:
+            raise ValueError(
+                f"CSV column count ({csv_num_cols}) does not match expected upper body joint count ({expected_cols})."
+            )
 
         # Load policy for lower body control
         self.policy = torch.jit.load(config.policy_path).eval()
@@ -433,32 +441,40 @@ class HybridController:
                 (self.current_obs_history[1:], self.current_obs.reshape(1, -1)), axis=0
             )
 
-        # Get policy action for lower body
+        # Get policy action (full dof vector)
         obs = self.current_obs_history.reshape(1, -1).astype(np.float32)
-        policy_action = self.policy(torch.from_numpy(obs).clip(-100, 100)).clip(-100, 100).detach().numpy().squeeze()
-        
-        # Get trajectory targets for upper body
+        policy_action = (
+            self.policy(torch.from_numpy(obs).clip(-100, 100))
+            .clip(-100, 100)
+            .detach()
+            .numpy()
+            .squeeze()
+        )
+
+        # Keep previous-action memory consistent for policy input on next step
+        self.action = policy_action.astype(np.float32, copy=False)
+
+        # Get trajectory targets for upper body (absolute joint positions)
         upper_body_targets = self.trajectory_player.get_current_targets(self.config.control_dt)
-        
         if upper_body_targets is None:
             print("Warning: No upper body trajectory data available")
-            upper_body_targets = np.zeros(len(self.upper_body_indices))
-        
-        # Combine upper body trajectory and lower body policy
-        self.action = np.zeros(num_actions, dtype=np.float32)
-        
-        # Set upper body actions from trajectory
+            upper_body_targets = np.zeros(len(self.upper_body_indices), dtype=np.float32)
+
+        # Calculate target positions: lower body uses policy (offset from default),
+        # upper body uses CSV absolute joint positions
+        target_dof_pos = np.array(self.config.default_joint_pos, dtype=np.float32, copy=True)
+
+        # Apply lower body policy outputs by joint index
+        for joint_idx in self.lower_body_indices:
+            target_dof_pos[joint_idx] = (
+                self.config.default_joint_pos[joint_idx]
+                + float(policy_action[joint_idx]) * self.config.action_scale
+            )
+
+        # Apply upper body CSV absolute targets
         for i, joint_idx in enumerate(self.upper_body_indices):
             if i < len(upper_body_targets):
-                self.action[joint_idx] = upper_body_targets[i]
-        
-        # Set lower body actions from policy
-        for i, joint_idx in enumerate(self.lower_body_indices):
-            if i < len(policy_action):
-                self.action[joint_idx] = policy_action[i]
-
-        # Calculate target positions
-        target_dof_pos = self.config.default_joint_pos + self.action * self.config.action_scale
+                target_dof_pos[joint_idx] = float(upper_body_targets[i])
         
         # Send commands to robot
         with self.cmd_lock:
