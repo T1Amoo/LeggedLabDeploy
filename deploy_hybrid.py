@@ -203,8 +203,10 @@ class HybridController:
         # Automatically identify upper and lower body joint indices based on robot type
         if config.msg_type == "hg":  # G1 robot
             # G1: joints 15-28 are upper body (both arms), 0-14 are lower body (legs + waist)
-            self.upper_body_indices = list(range(15, config.num_actions))
-            self.lower_body_indices = list(range(0, 15))
+            self.upper_body_indices = [11, 15, 19, 21, 23, 25, 27, 12, 16, 20, 22, 24, 26, 28]
+            # self.upper_body_indices = list(range(15, config.num_actions))
+            # self.lower_body_indices = list(range(0, 15))
+            self.lower_body_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 17, 18]
         elif config.msg_type == "go":  # H1 robot
             # H1: joints 18-19 are upper body (arms), 0-17 are lower body (legs)
             self.upper_body_indices = list(range(18, config.num_actions))
@@ -443,13 +445,8 @@ class HybridController:
 
         # Get policy action (full dof vector)
         obs = self.current_obs_history.reshape(1, -1).astype(np.float32)
-        policy_action = (
-            self.policy(torch.from_numpy(obs).clip(-100, 100))
-            .clip(-100, 100)
-            .detach()
-            .numpy()
-            .squeeze()
-        )
+        policy_action = self.policy(torch.from_numpy(obs).clip(-100, 100)).clip(-100, 100).detach().numpy().squeeze()
+        
 
         # Keep previous-action memory consistent for policy input on next step
         self.action = policy_action.astype(np.float32, copy=False)
@@ -466,10 +463,11 @@ class HybridController:
 
         # Apply lower body policy outputs by joint index
         for joint_idx in self.lower_body_indices:
-            target_dof_pos[joint_idx] = (
-                self.config.default_joint_pos[joint_idx]
-                + float(policy_action[joint_idx]) * self.config.action_scale
-            )
+            target_dof_pos[joint_idx] = 0.0
+            # (
+            #     self.config.default_joint_pos[joint_idx]
+            #     + float(policy_action[joint_idx]) * self.config.action_scale
+            # )
 
         # Apply upper body CSV absolute targets
         for i, joint_idx in enumerate(self.upper_body_indices):
@@ -491,7 +489,7 @@ def main():
     parser.add_argument("--config_path", type=str, default="configs/g1.yaml", help="Configuration file path")
     parser.add_argument("--upper_body_csv", type=str, required=True, 
                        help="Path to CSV file containing upper body trajectory")
-    parser.add_argument("--loop_trajectory", action="store_true", default=True,
+    parser.add_argument("--loop_trajectory", action="store_true", default=False,
                        help="Whether to loop the trajectory")
     
     args = parser.parse_args()

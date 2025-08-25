@@ -239,6 +239,8 @@ class Controller:
 
         obs = self.current_obs_history.reshape(1, -1).astype(np.float32)
         self.action = self.policy(torch.from_numpy(obs).clip(-100, 100)).clip(-100, 100).detach().numpy().squeeze()
+        
+        # print(f"[DEBUG] action: {self.action}")  # 添加调试信息
 
         target_dof_pos = self.config.default_joint_pos + self.action * self.config.action_scale
         with self.cmd_lock:
