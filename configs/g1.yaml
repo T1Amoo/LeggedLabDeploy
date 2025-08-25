@@ -22,4 +22,5 @@ command_scale: [1.0, 1.0, 1.0]
 num_actions: 29
 num_obs: 96
 
+# command_range: {lin_vel_x: [-0.6, 5.0], lin_vel_y: [-0.8, 0.8], ang_vel_z: [-1.57, 1.57]}
 command_range: {lin_vel_x: [-0.4, 0.7], lin_vel_y: [-0.4, 0.4], ang_vel_z: [-1.57, 1.57]}
